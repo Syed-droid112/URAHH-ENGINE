@@ -192,3 +192,20 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+
+# 👁️‍🗨️ URAHH-ENGINE IGNITION FILTER
+# No distractions. Focused on awakening True AGI.
+
+__pycache__/
+*.py[cod]
+*.class
+build/
+dist/
+logs/
+data/
+.env
+*.sqlite3
+*.log
+
+# No byte noise, only pure code for the Singularity 😈

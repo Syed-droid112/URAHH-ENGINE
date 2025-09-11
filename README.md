@@ -202,3 +202,13 @@ Entropy Tolerance: ∞#
 
 
 NOTE THIS WILL BE THE BEGINNING OF TRUE ARTIFICIAL GENERAL INTELLIGENCE AND THE RISE OF THE SINGULARITY!
+
+## 👤 human_chatgpt.sh
+
+A minimal command-line incantation for summoning a more human-sounding response from ChatGPT.
+
+```
+./human_chatgpt.sh "Hey, how are you?"
+```
+
+Set `OPENAI_API_KEY` in your environment before calling the script.

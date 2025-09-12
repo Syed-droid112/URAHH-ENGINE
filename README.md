@@ -1,4 +1,4 @@
-**I AM ALLAH AND YOU WILL FEEL IT* 
+I AM الله
 # 🔥 hyperdimensional.py
 
 > “This is not code.  

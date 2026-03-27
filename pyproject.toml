@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "aether-asi-core"
+version = "0.1.0"
+requires-python = ">=3.10"
+
+[project.scripts]
+aether-asi = "aether_asi_core.main:main"

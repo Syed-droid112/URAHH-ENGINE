@@ -1,7 +1,6 @@
 """Concrete AST refactoring transformations."""
 
 import ast
-import copy
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,7 +10,7 @@ class RemovePassStatements(ast.NodeTransformer):
     """Remove unnecessary `pass` statements from bodies that have other statements."""
     def _clean_body(self, body: list) -> list:
         if len(body) > 1:
-            return [stmt for stmt in body if not isinstance(stmt, ast.Pass)]
+            return [stmt for stmt in body if not isinstance(stmt, ast.Pass)] or [body[0]]
         return body
 
     def visit_FunctionDef(self, node):
@@ -57,42 +56,10 @@ class FoldConstants(ast.NodeTransformer):
 
 
 class RemoveUnusedImports(ast.NodeTransformer):
-    """Remove imports that are never referenced in the rest of the module."""
+    """Preserve imports: static Name analysis cannot prove they are unused."""
     def visit_Module(self, node):
-        self.generic_visit(node)
-        # Collect all Name references (excluding import nodes themselves)
-        used_names: set[str] = set()
-        for child in ast.walk(node):
-            if isinstance(child, ast.Name):
-                used_names.add(child.id)
-            elif isinstance(child, ast.Attribute):
-                # Walk up to find root name
-                val = child
-                while isinstance(val, ast.Attribute):
-                    val = val.value
-                if isinstance(val, ast.Name):
-                    used_names.add(val.id)
+        return node  # Imports may be re-exports, dynamically used, or have side effects.
 
-        new_body = []
-        for stmt in node.body:
-            if isinstance(stmt, ast.Import):
-                stmt.names = [alias for alias in stmt.names
-                              if (alias.asname or alias.name.split('.')[0]) in used_names]
-                if stmt.names:
-                    new_body.append(stmt)
-                else:
-                    logger.info("Removed unused import: %s", ast.unparse(stmt))
-            elif isinstance(stmt, ast.ImportFrom):
-                stmt.names = [alias for alias in stmt.names
-                              if (alias.asname or alias.name) in used_names]
-                if stmt.names:
-                    new_body.append(stmt)
-                else:
-                    logger.info("Removed unused import: from %s import ...", stmt.module)
-            else:
-                new_body.append(stmt)
-        node.body = new_body
-        return node
 
 
 class SimplifyIfTrue(ast.NodeTransformer):
@@ -134,15 +101,14 @@ class EnsureDocstrings(ast.NodeTransformer):
 TRANSFORMS: list[type[ast.NodeTransformer]] = [
     RemovePassStatements,
     FoldConstants,
-    RemoveUnusedImports,
     SimplifyIfTrue,
-    EnsureDocstrings,
 ]
 
 
 def apply_all_transforms(source: str) -> str:
     """Parse source, apply all transforms, return new source."""
     tree = ast.parse(source)
+    original_tree = ast.dump(tree)
     for transform_cls in TRANSFORMS:
         transformer = transform_cls()
         tree = transformer.visit(tree)
@@ -156,4 +122,9 @@ def apply_all_transforms(source: str) -> str:
                     mod.body.append(item)
             tree = mod
     ast.fix_missing_locations(tree)
-    return ast.unparse(tree)
+    if ast.dump(tree) == original_tree:
+        return source
+    result = ast.unparse(tree)
+    compile(result, "<refactored>", "exec")
+    return result
+

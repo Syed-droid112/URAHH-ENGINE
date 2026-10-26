@@ -57,7 +57,7 @@ class TestMetaOptimizer(unittest.TestCase):
             p = str(Path(td) / "s.json")
             soul = SoulModule(state_path=p)
             soul.add_objective("Test", 1)
-            opt = MetaOptimizer(soul=soul, max_depth=3, dry_run=False)
+            opt = MetaOptimizer(soul=soul, max_depth=3, dry_run=False, allow_lossy=True)
             result = opt.run_loop(target_dir=test_dir)
             self.assertGreater(result["total_files_changed"], 0)
 
@@ -71,10 +71,11 @@ class TestMetaOptimizer(unittest.TestCase):
             p = str(Path(td) / "s.json")
             soul = SoulModule(state_path=p)
             soul.add_objective("Test", 1)
-            opt = MetaOptimizer(soul=soul, max_depth=10, dry_run=False)
+            opt = MetaOptimizer(soul=soul, max_depth=10, dry_run=False, allow_lossy=True)
             result = opt.run_loop(target_dir=test_dir)
             # Should converge, not run all 10 iterations
             self.assertLessEqual(result["iterations_run"], 5)
 
 if __name__ == "__main__":
     unittest.main()
+

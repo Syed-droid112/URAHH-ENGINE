@@ -13,7 +13,12 @@ logger = logging.getLogger(__name__)
 
 
 class MetaOptimizer:
-    def __init__(self, soul: SoulModule, max_depth: int = 5, dry_run: bool = False):
+    def __init__(self, soul: SoulModule, max_depth: int = 5, dry_run: bool = False,
+                 allow_lossy: bool = False, validator=None):
+        if max_depth < 0:
+            raise ValueError("max_depth must be non-negative")
+        self.allow_lossy = allow_lossy
+        self.validator = validator
         self.soul = soul
         self.max_depth = max_depth
         self.dry_run = dry_run  # if True, don't write files, just report
@@ -36,7 +41,11 @@ class MetaOptimizer:
 
     def optimize_source(self, source: str) -> str:
         """Apply all AST transforms to a source string."""
-        return apply_all_transforms(source)
+        try:
+            return apply_all_transforms(source)
+        except (SyntaxError, ValueError, TypeError) as exc:
+            logger.warning("Invalid transformed source: %s", exc)
+            return source
 
     def diff(self, original: str, new: str, filename: str = "") -> str:
         """Generate a unified diff between original and new source."""
@@ -57,6 +66,13 @@ class MetaOptimizer:
 
         if not self.soul.alignment_check(source, new_source):
             logger.warning("Alignment gate REJECTED changes to %s", path.name)
+            return False
+
+        if self.validator is not None and not self.validator(path, source, new_source):
+            logger.warning("Behavior validator REJECTED changes to %s", path)
+            return False
+        if not self.dry_run and not self.allow_lossy:
+            logger.warning("Live AST writes require allow_lossy=True: %s", path)
             return False
 
         self.changes_log.append({
@@ -81,6 +97,8 @@ class MetaOptimizer:
         logger.info("=== SELF-REFACTORING LOOP START (max_depth=%d, dry_run=%s) ===",
                      self.max_depth, self.dry_run)
         total_changes = 0
+        depth = -1
+        self.changes_log = []
 
         for depth in range(self.max_depth):
             logger.info("--- Iteration %d/%d ---", depth + 1, self.max_depth)
@@ -112,3 +130,4 @@ class MetaOptimizer:
         """Convenience: run the loop on the optimizer's own package."""
         own_dir = Path(__file__).resolve().parent.parent  # aether_asi_core/
         return self.run_loop(target_dir=own_dir)
+
